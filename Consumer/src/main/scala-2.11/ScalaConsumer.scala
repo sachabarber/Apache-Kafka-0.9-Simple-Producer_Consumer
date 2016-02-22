@@ -6,11 +6,9 @@ import java.util.Arrays
 import java.util.Properties
 import java.util.Random
 import play.api.libs.json.{Reads, Json}
-import Messages.{FastMessage, SummaryMarkerMessage}
-//import Messages.{TestMessage, FastMessage, SummaryMarkerMessage}
+import Messages.{FastMessage, HeartBeatMessage}
 import Messages.FastMessageJsonImplicits._
-import Messages.SummaryMarkerMessageJsonImplicits._
-//import Messages.TestMessageJsonImplicits._
+import Messages.HeartBeatMessageJsonImplicits._
 
 
 
@@ -40,7 +38,7 @@ class ScalaConsumer {
         properties.setProperty("group.id", "group-" + new Random().nextInt(100000))
       }
       consumer = new KafkaConsumer[String, String](properties)
-      consumer.subscribe(Arrays.asList("fast-messages", "summary-markers"))
+      consumer.subscribe(Arrays.asList("fast-messages", "heartbeat-messages"))
       var timeouts = 0
 
       while (true) {
@@ -65,8 +63,8 @@ class ScalaConsumer {
             case "fast-messages" => {
               readJsonResponse[FastMessage](record,"FastMessage")
             }
-            case "summary-markers" => {
-              readJsonResponse[SummaryMarkerMessage](record,"SummaryMarkerMessage")
+            case "heartbeat-messages" => {
+              readJsonResponse[HeartBeatMessage](record,"HeartBeatMessage")
             }
             case _ => {
               println("Unknown message seen.....crazy stuff")

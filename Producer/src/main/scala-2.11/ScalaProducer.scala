@@ -1,10 +1,8 @@
-import org.apache.kafka.clients.producer.{KafkaProducer,ProducerRecord}
-import java.util.{Calendar, Properties}
+import org.apache.kafka.clients.producer.KafkaProducer
+import java.util.Properties
 import com.google.common.io.Resources
-import play.api.libs.json.{JsValue, Json}
-import Messages.{FastMessage,SummaryMarkerMessage}
-import Messages.FastMessageJsonImplicits._
-import Messages.SummaryMarkerMessageJsonImplicits._
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 object ScalaProducer {
   def main(args: Array[String]): Unit = {
@@ -12,7 +10,6 @@ object ScalaProducer {
     scalaProducer.run(args)
   }
 }
-
 
 /**
   * This producer will send a bunch of messages to topic "fast-messages". Every so often,
@@ -28,38 +25,28 @@ class ScalaProducer {
     scala.io.StdIn.readLine()
 
     var producer : KafkaProducer[String, String] = null
+    var closeableKafkaProducer : CloseableKafkaProducer = null
+
     try {
       val props = Resources.getResource("producer.props").openStream()
       val properties = new Properties()
       properties.load(props)
       producer = new KafkaProducer[String,String](properties)
-      var jsonText : String = ""
-//      for( i <- 0 to 1000000) {
-//        // send lots of messages
-//        jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
-//        producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
-//
-//        // every so often send to a different topic (i.e 'summary-markers')
-//        if (i % 1000 == 0) {
-//          jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
-//          producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
-//
-//          jsonText = Json.toJson(SummaryMarkerMessage(s"SummaryMarkerMessage_$i", i)).toString()
-//          producer.send(new ProducerRecord[String, String]("summary-markers", jsonText))
-//        }
-//        producer.flush()
-//        println("\"Sent msg number : %s", i)
-//      }
+      closeableKafkaProducer = new CloseableKafkaProducer(producer)
 
-      while(true) {
-        // send lots of messages
-        jsonText = Json.toJson(FastMessage("FastMessage_" + Calendar.getInstance().getTime().toString(),1)).toString()
-        producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
+      //"fast-messages"
+      val fastMessageRunnable = new FastMessageRunnable("fast-messages",closeableKafkaProducer)
+      val fastMessageRunnerScheduler = Executors.newSingleThreadScheduledExecutor()
+      fastMessageRunnerScheduler.scheduleAtFixedRate(fastMessageRunnable, 0, 3, TimeUnit.SECONDS);
 
+      //"heartbeat-messages"
+      val heartBeatMessageRunnable = new HeartBeatMessageRunnable("heartbeat-messages",closeableKafkaProducer)
+      val heartBeatMessageScheduler = Executors.newSingleThreadScheduledExecutor()
+      heartBeatMessageScheduler.scheduleAtFixedRate(heartBeatMessageRunnable, 0, 1, TimeUnit.SECONDS);
 
-        producer.flush()
-        println("Sent msg")
-      }
+      println("producing messages")
+      scala.io.StdIn.readLine()
+
     }
     catch {
         case throwable : Throwable =>
@@ -67,7 +54,39 @@ class ScalaProducer {
           println(s"Got exception : $st")
     }
     finally {
-      producer.close()
+      if(closeableKafkaProducer != null) {
+        closeableKafkaProducer.closeProducer()
+      }
     }
+
+
+
+
+
+//    var producer : KafkaProducer[String, String] = null
+//    try {
+//      val props = Resources.getResource("producer.props").openStream()
+//      val properties = new Properties()
+//      properties.load(props)
+//      producer = new KafkaProducer[String,String](properties)
+//      var jsonText : String = ""
+//
+//
+//      while(true) {
+//        // send lots of messages
+//        jsonText = Json.toJson(FastMessage("FastMessage_" + Calendar.getInstance().getTime().toString(),1)).toString()
+//        producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
+//        producer.flush()
+//        println("Sent msg")
+//      }
+//    }
+//    catch {
+//        case throwable : Throwable =>
+//          val st = throwable.getStackTrace()
+//          println(s"Got exception : $st")
+//    }
+//    finally {
+//      producer.close()
+//    }
   }
 }
