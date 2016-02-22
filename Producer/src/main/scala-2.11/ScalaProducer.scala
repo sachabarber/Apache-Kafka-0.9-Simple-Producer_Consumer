@@ -1,5 +1,5 @@
 import org.apache.kafka.clients.producer.{KafkaProducer,ProducerRecord}
-import java.util.Properties
+import java.util.{Calendar, Properties}
 import com.google.common.io.Resources
 import play.api.libs.json.{JsValue, Json}
 import Messages.{FastMessage,SummaryMarkerMessage}
@@ -34,21 +34,31 @@ class ScalaProducer {
       properties.load(props)
       producer = new KafkaProducer[String,String](properties)
       var jsonText : String = ""
-      for( i <- 0 to 1000000) {
+//      for( i <- 0 to 1000000) {
+//        // send lots of messages
+//        jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
+//        producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
+//
+//        // every so often send to a different topic (i.e 'summary-markers')
+//        if (i % 1000 == 0) {
+//          jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
+//          producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
+//
+//          jsonText = Json.toJson(SummaryMarkerMessage(s"SummaryMarkerMessage_$i", i)).toString()
+//          producer.send(new ProducerRecord[String, String]("summary-markers", jsonText))
+//        }
+//        producer.flush()
+//        println("\"Sent msg number : %s", i)
+//      }
+
+      while(true) {
         // send lots of messages
-        jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
+        jsonText = Json.toJson(FastMessage("FastMessage_" + Calendar.getInstance().getTime().toString(),1)).toString()
         producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
 
-        // every so often send to a different topic (i.e 'summary-markers')
-        if (i % 1000 == 0) {
-          jsonText = Json.toJson(FastMessage(s"FastMessage_$i", i)).toString()
-          producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
 
-          jsonText = Json.toJson(SummaryMarkerMessage(s"SummaryMarkerMessage_$i", i)).toString()
-          producer.send(new ProducerRecord[String, String]("summary-markers", jsonText))
-        }
         producer.flush()
-        println("\"Sent msg number : %s", i)
+        println("Sent msg")
       }
     }
     catch {

@@ -96,29 +96,4 @@ class ScalaConsumer {
         println(s"readJsonResponse() Got exception : $st")
     }
   }
-
-
-//  def processFastMessage(record: ConsumerRecord[String,String], topicDescription : String): Unit = {
-//    try {
-//      println(s"$topicDescription >")
-//      Json.parse(record.value()).asOpt[Messages.FastMessage].map(rm => println(rm))
-//    }
-//    catch {
-//      case throwable: Throwable =>
-//        val st = throwable.getStackTrace()
-//        println(s"processMessage() Got exception : $st")
-//    }
-//  }
-
-//  def processSummaryMarkerMessage(record: ConsumerRecord[String,String], topicDescription : String): Unit = {
-//    try {
-//      println(s"$topicDescription >")
-//      Json.parse(record.value()).asOpt[Messages.SummaryMarkerMessage].map(rm => println(rm))
-//    }
-//    catch {
-//      case throwable: Throwable =>
-//        val st = throwable.getStackTrace()
-//        println(s"processMessage() Got exception : $st")
-//    }
-//  }
 }
