@@ -13,7 +13,7 @@ object ScalaProducer {
 
 /**
   * This producer will send a bunch of messages to topic "fast-messages". Every so often,
-  * it will send a message to "slow-messages". This shows how messages can be sent to
+  * it will send a message to "heartBeat-messages". This shows how messages can be sent to
   * multiple topics. On the receiving end, we will see both kinds of messages but will
   * also see how the two topics aren't really synchronized.
   */
@@ -39,10 +39,10 @@ class ScalaProducer {
       val fastMessageRunnerScheduler = Executors.newSingleThreadScheduledExecutor()
       fastMessageRunnerScheduler.scheduleAtFixedRate(fastMessageRunnable, 0, 3, TimeUnit.SECONDS);
 
-      //"heartbeat-messages"
-      val heartBeatMessageRunnable = new HeartBeatMessageRunnable("heartbeat-messages",closeableKafkaProducer)
-      val heartBeatMessageScheduler = Executors.newSingleThreadScheduledExecutor()
-      heartBeatMessageScheduler.scheduleAtFixedRate(heartBeatMessageRunnable, 0, 1, TimeUnit.SECONDS);
+      //"order-placed-messages"
+      val orderPlacedMessageRunnable = new OrderPlacedMessageRunnable("order-placed-messages",closeableKafkaProducer)
+      val orderPlacedMessageScheduler = Executors.newSingleThreadScheduledExecutor()
+      orderPlacedMessageScheduler.scheduleAtFixedRate(orderPlacedMessageRunnable, 0, 1, TimeUnit.SECONDS);
 
       println("producing messages")
       scala.io.StdIn.readLine()
@@ -58,35 +58,5 @@ class ScalaProducer {
         closeableKafkaProducer.closeProducer()
       }
     }
-
-
-
-
-
-//    var producer : KafkaProducer[String, String] = null
-//    try {
-//      val props = Resources.getResource("producer.props").openStream()
-//      val properties = new Properties()
-//      properties.load(props)
-//      producer = new KafkaProducer[String,String](properties)
-//      var jsonText : String = ""
-//
-//
-//      while(true) {
-//        // send lots of messages
-//        jsonText = Json.toJson(FastMessage("FastMessage_" + Calendar.getInstance().getTime().toString(),1)).toString()
-//        producer.send(new ProducerRecord[String, String]("fast-messages", jsonText))
-//        producer.flush()
-//        println("Sent msg")
-//      }
-//    }
-//    catch {
-//        case throwable : Throwable =>
-//          val st = throwable.getStackTrace()
-//          println(s"Got exception : $st")
-//    }
-//    finally {
-//      producer.close()
-//    }
   }
 }

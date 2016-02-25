@@ -1,10 +1,10 @@
 import java.util.Date
 import play.api.libs.json.Json
-import Messages.HeartBeatMessage
-import Messages.HeartBeatMessageJsonImplicits._
+import Messages.OrderPlacedMessage
+import Messages.OrderPlacedMessageJsonImplicits._
 
-class HeartBeatMessageRunnable(val topic : String, val closeableKafkaProducer : CloseableKafkaProducer) extends MessageRunnable {
+class OrderPlacedMessageRunnable(val topic : String, val closeableKafkaProducer : CloseableKafkaProducer) extends MessageRunnable {
   override def produceMessage(): String = {
-    Json.toJson(HeartBeatMessage(new Date())).toString()
+    Json.toJson(OrderPlacedMessage(new Date())).toString()
   }
 }
