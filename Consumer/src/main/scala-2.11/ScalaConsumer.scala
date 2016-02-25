@@ -4,6 +4,5 @@ object ScalaConsumer {
     //scalaConsumer.run()
 
     val scalaConsumer = new FastMessageKafkaConsumer()
-    scalaConsumer.run()
   }
 }

@@ -1,4 +1,4 @@
-import java.util.concurrent.atomic.AtomicBoolean
+import java.io.Closeable
 import com.google.common.io.Resources
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
@@ -7,20 +7,23 @@ import java.util.Arrays
 import java.util.Properties
 import java.util.Random
 import play.api.libs.json.{Reads, Json}
-
+import rx.lang.scala.Observable
+import rx.lang.scala.subjects.PublishSubject
 
 ///**
 //  * This program reads messages from two topics.
 //  * Whenever a message is received on "slow-messages", the stats are dumped.
 //  */
-abstract class GenericKafkaConsumer[T](topic : String) {
+abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
+  val topicSubject = PublishSubject.apply[T]()
+  var consumer : KafkaConsumer[String, String] = null
+  var closeableKafkaConsumer : CloseableKafkaConsumer = null
 
+  run()
 
-  def run(): Unit = {
+  private def run(): Unit = {
 
     // and the consumer
-    var consumer : KafkaConsumer[String, String] = null
-    var closeableKafkaConsumer : CloseableKafkaConsumer = null
     try {
 
       val props = Resources.getResource("consumer.props").openStream()
@@ -61,17 +64,7 @@ abstract class GenericKafkaConsumer[T](topic : String) {
           else {
             println(s"Unknown message seen for topic '$recordTopic' .....crazy stuff")
           }
-//          val pattern = topic.r
-//          println(s"pattern > $pattern")
-//          recordTopic match {
-//            case pattern(_) => {
-//              readTopicJson(record,topic)
-//            }
-//            case _ => {
-//              println(s"Unknown message seen for topic '$recordTopic' .....crazy stuff")
-//            }
-//          }
-        }
+       }
       }
     }
     catch {
@@ -86,7 +79,7 @@ abstract class GenericKafkaConsumer[T](topic : String) {
     }
   }
 
-  def readJsonResponse[T](record: ConsumerRecord[String,String], topicDescription : String)(implicit reader: Reads[T]) : Unit = {
+  protected def readJsonResponse[T](record: ConsumerRecord[String,String], topicDescription : String)(implicit reader: Reads[T]) : Unit = {
     try {
       println(s"$topicDescription >")
       Json.parse(record.value()).asOpt[T].map(rm => println(rm))
@@ -98,5 +91,17 @@ abstract class GenericKafkaConsumer[T](topic : String) {
     }
   }
 
+  def getMessageStream() : Observable[T]  = {
+    topicSubject.asInstanceOf[Observable[T]]
+  }
+
+  override def close() : Unit = {
+    if(closeableKafkaConsumer != null) {
+      closeableKafkaConsumer.closeConsumer()
+    }
+  }
+
+
   def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Unit
+
 }
