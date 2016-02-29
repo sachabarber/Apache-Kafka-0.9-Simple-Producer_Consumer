@@ -4,22 +4,30 @@ import rx.lang.scala.{Subscription, Observable}
 /**
   * Created by sacha on 2/25/2016.
   */
-class MessageClient(val topic : String) {
+class MessageClient() {
   val consumerMap = setupMap()
 
-  def setupMap() : Map[String, (() => RxConsumable[AnyRef])] = {
-    val map = Map[String, () => RxConsumable[AnyRef]]()
-    val updatedMap = map + (Consumers.fastMessageTopic, () => { new FastMessageKafkaConsumer().asInstanceOf[RxConsumable[AnyRef]]})
+  def setupMap() : Map[String, (() => GenericKafkaConsumer[AnyRef])] = {
+    val map = Map[String, () => GenericKafkaConsumer[AnyRef]]()
+    val updatedMap = map + (Consumers.fastMessageTopic, () => { new FastMessageKafkaConsumer().asInstanceOf[GenericKafkaConsumer[AnyRef]]})
     updatedMap
   }
 
-  def GetMessageStreamForTopic[T](topic : String) : Observable[T] = {
+  def getMessageStreamForTopic[T](topic : String) : Observable[T] = {
     Observable.create[T](observer => {
       consumerMap.get(topic) match {
         case Some(messageFactory) => {
-          val streamSource = messageFactory().asInstanceOf[RxConsumable[T]]
-          val sub = streamSource.getMessageStream().subscribe(observer)
-          CompositeSubscription(sub, Subscription(streamSource.close()))
+          try {
+            val streamSource = messageFactory().asInstanceOf[GenericKafkaConsumer[T]]
+            val sub = streamSource.getMessageStream().subscribe(observer)
+            CompositeSubscription(sub, Subscription(streamSource.close()))
+          }
+          catch {
+            case throwable : Throwable =>
+              val st = throwable.getStackTrace()
+              println(s"Got exception : $st")
+              Subscription()
+          }
         }
         case _ => {
             println("OH NO THATS BAD")

@@ -1,4 +1,5 @@
 import java.io.Closeable
+import Messages.FastMessage
 import com.google.common.io.Resources
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
@@ -19,9 +20,11 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
   var consumer : KafkaConsumer[String, String] = null
   var closeableKafkaConsumer : CloseableKafkaConsumer = null
 
-  run()
 
-  private def run(): Unit = {
+  def run(): Unit = {
+
+
+
 
     // and the consumer
     try {
@@ -58,8 +61,12 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
           val record : ConsumerRecord[String,String] = it.next()
           val recordTopic = record.topic()
           if(recordTopic == topic) {
-            println("TOPIC MATCHED")
-            readTopicJson(record,topic)
+            val message = readTopicJson(record,topic)
+            message.map(x =>  {
+              println(s"Message about to be RX published is $x")
+              topicSubject.onNext(x)
+              consumer.commitSync()
+            })
           }
           else {
             println(s"Unknown message seen for topic '$recordTopic' .....crazy stuff")
@@ -79,15 +86,16 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
     }
   }
 
-  protected def readJsonResponse[T](record: ConsumerRecord[String,String], topicDescription : String)(implicit reader: Reads[T]) : Unit = {
+  protected def readJsonResponse[T](record: ConsumerRecord[String,String], topicDescription : String)(implicit reader: Reads[T]) : Option[T] = {
     try {
       println(s"$topicDescription >")
-      Json.parse(record.value()).asOpt[T].map(rm => println(rm))
+      Some(Json.parse(record.value()).as[T])
     }
     catch {
       case throwable: Throwable =>
         val st = throwable.getStackTrace()
-        println(s"readJsonResponse() Got exception : $st")
+        println(s"Got exception : $st")
+        None
     }
   }
 
@@ -102,6 +110,6 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
   }
 
 
-  def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Unit
+  def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Option[T]
 
 }

@@ -4,10 +4,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 
 class FastMessageKafkaConsumer
-  extends GenericKafkaConsumer[FastMessage](Consumers.fastMessageTopic)
-  with RxConsumable[FastMessage] {
+  extends GenericKafkaConsumer[FastMessage](Consumers.fastMessageTopic) {
 
-  override def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Unit = {
+
+  def pushOneOut(m : FastMessage) : Unit = {
+    topicSubject.onNext(m)
+  }
+
+
+  override def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Option[FastMessage] = {
     readJsonResponse[FastMessage](record,topic)
   }
 }
