@@ -1,4 +1,5 @@
 import java.io.Closeable
+import java.util.concurrent.{TimeUnit, Executors, ExecutorService}
 import Messages.FastMessage
 import com.google.common.io.Resources
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -12,21 +13,45 @@ import rx.lang.scala.Observable
 import rx.lang.scala.subjects.PublishSubject
 
 ///**
-//  * This program reads messages from two topics.
-//  * Whenever a message is received on "slow-messages", the stats are dumped.
+//  * This program reads messages from a single topic.
+//  * Whenever a message is received it is pumped out using RX
 //  */
-abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
+abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Runnable {
   val topicSubject = PublishSubject.apply[T]()
   var consumer : KafkaConsumer[String, String] = null
   var closeableKafkaConsumer : CloseableKafkaConsumer = null
+  val pool : ExecutorService = Executors.newFixedThreadPool(2)
+  var shouldRun : Boolean = true
 
+  def startConsuming() : Unit = {
+    pool.execute(this)
+  }
 
-  def run(): Unit = {
+  def shutdownAndAwaitTermination(pool : ExecutorService) : Unit = {
+    // Disable new tasks from being submitted
+    pool.shutdown()
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+        pool.shutdownNow(); // Cancel currently executing tasks
+        // Wait a while for tasks to respond to being cancelled
+        if (!pool.awaitTermination(60, TimeUnit.SECONDS))
+          System.err.println("Pool did not terminate")
+      }
+    }
+    catch {
+      case throwable : Throwable =>
+        val st = throwable.getStackTrace()
+        println(s"Got exception : $st")
+        // (Re-)Cancel if current thread also interrupted
+        pool.shutdownNow()
+        // Preserve interrupt status
+        Thread.currentThread().interrupt()
+    }
+  }
 
+  def run() : Unit = {
 
-
-
-    // and the consumer
     try {
 
       val props = Resources.getResource("consumer.props").openStream()
@@ -42,7 +67,7 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
 
       println(s"THE TOPIC IS : $topic")
 
-      while (true) {
+      while (shouldRun) {
 
         println("consumer loop running, wait for messages")
         // read records with a short timeout. If we time out, we don't really care.
@@ -51,7 +76,6 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
         if (recordCount == 0) {
           timeouts = timeouts + 1
         } else {
-
           println(s"Got $recordCount records after $timeouts timeouts\n")
           timeouts = 0
         }
@@ -71,18 +95,21 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
           else {
             println(s"Unknown message seen for topic '$recordTopic' .....crazy stuff")
           }
-       }
+        }
       }
     }
     catch {
       case throwable : Throwable =>
+        shouldRun = false
         val st = throwable.getStackTrace()
         println(s"Got exception : $st")
+        topicSubject.onError(throwable)
     }
     finally {
       if(closeableKafkaConsumer != null) {
         closeableKafkaConsumer.closeConsumer()
       }
+      shutdownAndAwaitTermination(pool)
     }
   }
 
@@ -107,6 +134,8 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable {
     if(closeableKafkaConsumer != null) {
       closeableKafkaConsumer.closeConsumer()
     }
+    shouldRun = false
+    shutdownAndAwaitTermination(pool)
   }
 
 

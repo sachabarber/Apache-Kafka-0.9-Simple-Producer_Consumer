@@ -1,14 +1,15 @@
 import rx.lang.scala.subscriptions.CompositeSubscription
 import rx.lang.scala.{Subscription, Observable}
 
-/**
-  * Created by sacha on 2/25/2016.
-  */
 class MessageClient() {
   val consumerMap = setupMap()
 
   def setupMap() : Map[String, (() => GenericKafkaConsumer[AnyRef])] = {
     val map = Map[String, () => GenericKafkaConsumer[AnyRef]]()
+    //TODO : you would need to add other consumers to the map here
+    //TODO : you would need to add other consumers to the map here
+    //TODO : you would need to add other consumers to the map here
+    //TODO : you would need to add other consumers to the map here
     val updatedMap = map + (Consumers.fastMessageTopic, () => { new FastMessageKafkaConsumer().asInstanceOf[GenericKafkaConsumer[AnyRef]]})
     updatedMap
   }
