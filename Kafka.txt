@@ -1,0 +1,60 @@
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+RX STUFF TO DO
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1. Need to create comsumer, which can be in different group. They listen to their own topic and also heartbeat one
+  if no heartbeat in x-time failure for consumer. Consumer should take topic name and will be a MessageBus for that
+  type of message.
+2. change producer to pump out 2 things, regular messages on slow moving timer, and heartbeat on fast moving timer
+
+
+
+
+
+
+
+GREAT GETTING STARTED GUIDE
+http://www.codeproject.com/Articles/1068998/Running-Apache-Kafka-on-Windows-without-Cygwin
+
+
+
+1. RUNNING ZOOKEEPER
+cd C:\Apache\Apache-zookeeper-3.4.6\bin
+zkserver
+
+
+2. RUNNING KAFKA
+cd C:\Apache\Apache-Kafka-0.9.0.0
+.\bin\windows\kafka-server-start.bat .\config\server.properties 
+
+
+3. CREATE A TOPIC (ONLY DO THIS ONCE)
+cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
+kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
+
+3.1 REAL TOPICS FOR DEMO (ONLY DO THIS ONCE)
+cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
+kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic fast-messages
+kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic summary-markers
+
+
+
+4. USE TEST CONSOLE PUBLISHER
+cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
+kafka-console-producer.bat --broker-list localhost:9092 --topic test
+
+
+5. USE TEST CONSOLE SUBSCRIBER
+cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -10,7 +10,10 @@ class MessageClient() {
     //TODO : you would need to add other consumers to the map here
     //TODO : you would need to add other consumers to the map here
     //TODO : you would need to add other consumers to the map here
-    val updatedMap = map + (Consumers.fastMessageTopic, () => { new FastMessageKafkaConsumer().asInstanceOf[GenericKafkaConsumer[AnyRef]]})
+    val updatedMap = map + (Consumers.fastMessageTopic, () =>
+    {
+      new FastMessageKafkaConsumer().asInstanceOf[GenericKafkaConsumer[AnyRef]]}
+    )
     updatedMap
   }
 
@@ -20,6 +23,7 @@ class MessageClient() {
         case Some(messageFactory) => {
           try {
             val streamSource = messageFactory().asInstanceOf[GenericKafkaConsumer[T]]
+            streamSource.startConsuming()
             val sub = streamSource.getMessageStream().subscribe(observer)
             CompositeSubscription(sub, Subscription(streamSource.close()))
           }

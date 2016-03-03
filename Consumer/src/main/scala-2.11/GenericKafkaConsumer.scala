@@ -19,36 +19,13 @@ import rx.lang.scala.subjects.PublishSubject
 abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Runnable {
   val topicSubject = PublishSubject.apply[T]()
   var consumer : KafkaConsumer[String, String] = null
-  var closeableKafkaConsumer : CloseableKafkaConsumer = null
-  val pool : ExecutorService = Executors.newFixedThreadPool(2)
+  val pool : ExecutorService = Executors.newFixedThreadPool(1)
   var shouldRun : Boolean = true
 
   def startConsuming() : Unit = {
     pool.execute(this)
   }
 
-  def shutdownAndAwaitTermination(pool : ExecutorService) : Unit = {
-    // Disable new tasks from being submitted
-    pool.shutdown()
-    try {
-      // Wait a while for existing tasks to terminate
-      if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
-        pool.shutdownNow(); // Cancel currently executing tasks
-        // Wait a while for tasks to respond to being cancelled
-        if (!pool.awaitTermination(60, TimeUnit.SECONDS))
-          System.err.println("Pool did not terminate")
-      }
-    }
-    catch {
-      case throwable : Throwable =>
-        val st = throwable.getStackTrace()
-        println(s"Got exception : $st")
-        // (Re-)Cancel if current thread also interrupted
-        pool.shutdownNow()
-        // Preserve interrupt status
-        Thread.currentThread().interrupt()
-    }
-  }
 
   def run() : Unit = {
 
@@ -61,17 +38,15 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Ru
         properties.setProperty("group.id", "group-" + new Random().nextInt(100000))
       }
       consumer = new KafkaConsumer[String, String](properties)
-      closeableKafkaConsumer  = new CloseableKafkaConsumer(consumer)
-      closeableKafkaConsumer.consumer.subscribe(Arrays.asList(topic))
+      consumer.subscribe(Arrays.asList(topic))
       var timeouts = 0
 
       println(s"THE TOPIC IS : $topic")
 
       while (shouldRun) {
-
         println("consumer loop running, wait for messages")
         // read records with a short timeout. If we time out, we don't really care.
-        val records : ConsumerRecords[String, String] = closeableKafkaConsumer.consumer.poll(200)
+        val records : ConsumerRecords[String, String] = consumer.poll(200)
         val recordCount = records.count()
         if (recordCount == 0) {
           timeouts = timeouts + 1
@@ -79,7 +54,6 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Ru
           println(s"Got $recordCount records after $timeouts timeouts\n")
           timeouts = 0
         }
-
         val it = records.iterator()
         while(it.hasNext()) {
           val record : ConsumerRecord[String,String] = it.next()
@@ -106,9 +80,6 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Ru
         topicSubject.onError(throwable)
     }
     finally {
-      if(closeableKafkaConsumer != null) {
-        closeableKafkaConsumer.closeConsumer()
-      }
       shutdownAndAwaitTermination(pool)
     }
   }
@@ -131,14 +102,35 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Ru
   }
 
   override def close() : Unit = {
-    if(closeableKafkaConsumer != null) {
-      closeableKafkaConsumer.closeConsumer()
-    }
+    println(s"GneericKafkaConsumer closed")
     shouldRun = false
     shutdownAndAwaitTermination(pool)
   }
 
+  def shutdownAndAwaitTermination(pool : ExecutorService) : Unit = {
+    // Disable new tasks from being submitted
+    pool.shutdown()
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+        // Cancel currently executing tasks
+        pool.shutdownNow()
+        // Wait a while for tasks to respond to being cancelled
+        if (!pool.awaitTermination(60, TimeUnit.SECONDS))
+          println("Pool did not terminate")
+      }
+    }
+    catch {
+      case throwable : Throwable =>
+        val st = throwable.getStackTrace()
+        println(s"Got exception : $st")
+        // (Re-)Cancel if current thread also interrupted
+        pool.shutdownNow()
+        // Preserve interrupt status
+        Thread.currentThread().interrupt()
+    }
+  }
 
+  //implemented by inheritors
   def readTopicJson(record : ConsumerRecord[String,String], topic : String) : Option[T]
-
 }
