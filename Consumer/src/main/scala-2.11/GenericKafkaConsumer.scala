@@ -84,7 +84,9 @@ abstract class GenericKafkaConsumer[T](topic : String) extends Closeable with Ru
     }
   }
 
-  protected def readJsonResponse[T](record: ConsumerRecord[String,String], topicDescription : String)(implicit reader: Reads[T]) : Option[T] = {
+  protected def readJsonResponse[T](
+         record: ConsumerRecord[String,String],
+         topicDescription : String)(implicit reader: Reads[T]) : Option[T] = {
     try {
       println(s"$topicDescription >")
       Some(Json.parse(record.value()).as[T])

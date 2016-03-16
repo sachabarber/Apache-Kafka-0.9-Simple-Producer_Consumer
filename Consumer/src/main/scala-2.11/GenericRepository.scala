@@ -1,9 +1,8 @@
-import Messages.FastMessage
 import rx.lang.scala.Observable
 
-class GenericRepository {
+object GenericRepository {
 
-  val messageClient = new MessageClient()
+  private lazy val messageClient = new MessageClient()
 
   def GetMessageStream[T](topic: String): Observable[T] = {
     Observable.defer[T](messageClient.getMessageStreamForTopic[T](topic))
@@ -12,3 +11,14 @@ class GenericRepository {
       .refCount
   }
 }
+
+//class GenericRepository {
+//
+//  private val messageClient = new MessageClient()
+//
+//  def GetMessageStream[T](topic: String): Observable[T] = {
+//    Observable.defer[T](messageClient.getMessageStreamForTopic[T](topic))
+//      .repeat
+//      .publish
+//      .refCount
+//  }

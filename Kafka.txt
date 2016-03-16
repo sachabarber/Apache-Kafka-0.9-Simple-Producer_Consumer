@@ -31,11 +31,16 @@ cd C:\Apache\Apache-Kafka-0.9.0.0
 cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
 kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
 
-3.1 REAL TOPICS FOR DEMO (ONLY DO THIS ONCE)
+3.1 REAL TOPICS FOR DEMO SIMPLE VERSION (ONLY DO THIS ONCE)
 cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
 kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic fast-messages
 kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic summary-markers
 
+
+3.1 REAL TOPICS FOR DEMO RX VERSION (ONLY DO THIS ONCE)
+cd C:\Apache\Apache-Kafka-0.9.0.0\bin\windows
+kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic fast-messages
+kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic order-placed-messages
 
 
 4. USE TEST CONSOLE PUBLISHER
